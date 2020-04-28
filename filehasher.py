@@ -5,17 +5,14 @@ import hashlib
 import gzip
 import argparse
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument("-m", "--max-file-size", help="Max Size of files to hash in bytes", type=int, default=(10*1024*1024), required=False)
+parser.add_argument("-m", "--max-file-size", help="Max Size of files to hash in bytes", type=int, default=(50*1024*1024), required=False)
 parser.add_argument("-d", "--ignore-dir", help="Ignore directory", action='append', required=False)
 parser.add_argument("-v", "--verbosity", action="count", default=0,help="Increase output verbosity", required=False)
 parser.add_argument("-o", "--outfile" , default="md5hashes.txt.gz", help="Outputfile for hashlist" , required=False)
 parser.add_argument("-t", "--text" , action='store_true', help="Disable compression for outfile")
 parser.add_argument("-c", "--hash-algo" , default='md5', help="Select Hashingalgorithm to use. Must be one of:\n{}".format(str(hashlib.algorithms_available)))
 parser.add_argument("-b", "--basepath" , default=os.path.sep , help="Basepath for hashing")
-
-
 
 args = parser.parse_args()
 def log(message,loglevel=2):
