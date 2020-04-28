@@ -34,7 +34,7 @@ def get_file_hash(file):
 
 
 with gzip.open('./md5hashes.txt.gz', 'wt') as outfile:
-    for path,folders,files in os.walk('/',topdown=True):
+    for path,folders,files in os.walk(os.path.sep,topdown=True):
         log("processing path {}".format(path))
         log("following folders were found: {}".format(str(folders)),3)
 
