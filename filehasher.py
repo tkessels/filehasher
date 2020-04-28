@@ -13,8 +13,8 @@ parser.add_argument("-o", "--outfile" , default="md5hashes.txt.gz", help="Output
 parser.add_argument("-t", "--text" , action='store_true', help="Disable compression for outfile")
 parser.add_argument("-c", "--hash-algo" , default='md5', help="Select Hashingalgorithm to use. Must be one of:\n{}".format(str(hashlib.algorithms_available)))
 parser.add_argument("-b", "--basepath" , default=os.path.sep , help="Basepath for hashing")
-
 args = parser.parse_args()
+
 def log(message,loglevel=2):
     level=["error","info","debug","trace"]
     if loglevel < args.verbosity:
@@ -37,10 +37,15 @@ def get_file_hash(file):
     return hash
 
 log(str(args))
+
 if args.text:
     outfile=open(args.outfile, 'wt')
 else:
     outfile=gzip.open(args.outfile, 'wt')
+
+# remote trailing slashes from excluded folder names
+if args.ignore_dir:
+    args.ignore_dir=[x.rstrip(os.path.sep) for x in args.ignore_dir]
 
 for path,folders,files in os.walk(args.basepath,topdown=True):
     log("processing path {}".format(path),3)
