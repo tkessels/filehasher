@@ -35,7 +35,7 @@ def get_file_hash(file):
 
 with gzip.open('./md5hashes.txt.gz', 'wt') as outfile:
     for path,folders,files in os.walk(os.path.sep,topdown=True):
-        log("processing path {}".format(path))
+        log("processing path {}".format(path),3)
         log("following folders were found: {}".format(str(folders)),3)
 
         # remove ignored foldersfrom traversal list
@@ -46,11 +46,11 @@ with gzip.open('./md5hashes.txt.gz', 'wt') as outfile:
                 files[:] = []
             # remove subfolders if subfoldernames are in ignorelist
             excluded_folders=[x for x in folders if x in args.ignore_dir]
-            log("following folders will be excluded: {}".format(str(excluded_folders)),1)
+            log("following folders will be excluded: {}".format(str(excluded_folders)),2)
             for x in excluded_folders : folders.remove(x)
 
         for file in [os.path.join(path,f) for f in files]:
-            log("processing file {}".format(file))
+            log("processing file {}".format(file),3)
             hash=get_file_hash(file)
             if hash:
                 output="{}  {}\n".format(hash,file)
