@@ -13,6 +13,7 @@ parser.add_argument("-v", "--verbosity", action="count", default=0,help="Increas
 parser.add_argument("-o", "--outfile" , default="md5hashes.txt.gz", help="Outputfile for hashlist" , required=False)
 parser.add_argument("-t", "--text" , action='store_true', help="Disable compression for outfile")
 parser.add_argument("-c", "--hash-algo" , default='md5', help="Select Hashingalgorithm to use. Must be one of:\n{}".format(str(hashlib.algorithms_available)))
+parser.add_argument("-b", "--basepath" , default=os.path.sep , help="Basepath for hashing")
 
 
 
@@ -44,7 +45,7 @@ if args.text:
 else:
     outfile=gzip.open(args.outfile, 'wt')
 
-for path,folders,files in os.walk(os.path.sep,topdown=True):
+for path,folders,files in os.walk(args.basepath,topdown=True):
     log("processing path {}".format(path),3)
     log("following folders were found: {}".format(str(folders)),3)
 
