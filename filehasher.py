@@ -12,6 +12,7 @@ parser.add_argument("-d", "--ignore-dir", help="Ignore directory", action='appen
 parser.add_argument("-v", "--verbosity", action="count", default=0,help="Increase output verbosity", required=False)
 parser.add_argument("-o", "--outfile" , default="md5hashes.txt.gz", help="Outputfile for hashlist" , required=False)
 parser.add_argument("-t", "--text" , action='store_true', help="Disable compression for outfile")
+parser.add_argument("-c", "--hash-algo" , default='md5', help="Select Hashingalgorithm to use. Must be one of:\n{}".format(str(hashlib.algorithms_available)))
 
 
 
@@ -27,7 +28,9 @@ def get_file_hash(file):
         if os.path.isfile(file) and os.access(file,os.R_OK):
             if os.path.getsize(file)<args.max_file_size:
                 with open(file,'rb') as data:
-                    hash=hashlib.md5(data.read()).hexdigest()
+                    hasher=hashlib.new(args.hash_algo)
+                    hasher.update(data.read())
+                    hash=hasher.hexdigest()
             else:
                 log("skipping file {} because of size. ({})".format(file,os.path.getsize(file)))
 
