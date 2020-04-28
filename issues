@@ -1,0 +1,7 @@
+add ignore_files_list
+add ignore_folder_list
+support globbing in ignore lists
+add cmd-line arguments for root folder to hash
+add cmd-line arguments for hash-algo
+add cmd-line argument  for ignored files and folders
+add file-extension filtering
