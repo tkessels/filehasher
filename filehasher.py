@@ -4,7 +4,6 @@ import os
 import hashlib
 import gzip
 import argparse
-import platform
 import magic
 from tqdm import tqdm
 
