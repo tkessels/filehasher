@@ -72,8 +72,8 @@ def get_filelist(basepath):
             # skip if path is in ignore list
             if path in args.ignore_dir:
                 excludedfolders.append(path)
-                folders[:] = []
-                files[:] = []
+                folders.clear()
+                file.clear()
 
             # remove subfolders if subfoldernames are in ignorelist
             excluded_subfolders=[x for x in folders if x in args.ignore_dir]
