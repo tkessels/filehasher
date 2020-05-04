@@ -10,7 +10,10 @@ try:
 except:
     pass
 
-from tqdm import tqdm
+try:
+    from tqdm import tqdm
+except:
+    pass
 
 class File:
     def __init__(self,filename:str,hashtypes=['md5']):
@@ -25,13 +28,15 @@ class File:
                 self.filesize=os.path.getsize(filename)
                 if self.filesize >= 0 and ((self.filesize<args.max_file_size) or (args.max_file_size <=0)):
                     hashers=[hashlib.new(hashtype) for hashtype in hashtypes]
-                    hpb=tqdm(total=self.filesize,desc=self.file,unit='bytes',leave=False,mininterval=0.5,disable=not args.progress)
+                    hpb=None
+                    if args.progress and args.verbosity>0:
+                        hpb=tqdm(total=self.filesize,desc=self.file,unit='bytes',leave=False,mininterval=0.5,disable=not args.progress)
                     try:
                         if args.magic : self.filetype=magic.from_file(self.filename,mime=True)
                         with open(filename, 'rb') as f:
                             while True:
                                 data = f.read(65536)
-                                hpb.update(len(data))
+                                if hpb : hpb.update(len(data))
 
                                 if not data:
                                     break
@@ -42,7 +47,7 @@ class File:
                         self.errors.append("File could not be read")
                         print(e )
                     self.results={h.name:h.hexdigest() for h in hashers}
-                    hpb.close()
+                    if hpb : hpb.close()
                 else:
                     self.errors.append("File too big")
             else:
@@ -99,7 +104,9 @@ def main():
     global args
     args = parser.parse_args()
 
+    if 'tqdm' not in sys.modules: args.progress=False
     args.magic='magic' in sys.modules
+
     if args.hash_algo:
         for h in args.hash_algo:
             if h not in hashlib.algorithms_available:
@@ -122,8 +129,8 @@ def main():
         args.ignore_dir=[x.rstrip(os.path.sep) for x in args.ignore_dir]
     #build filelist
     fl,ef=get_filelist(args.basepath)
-    files=[]
-    for f in tqdm(fl,desc="Hashing...",unit=' files',disable=not args.progress,mininterval=1):
+    if args.progress : fl=tqdm(fl,desc="Hashing...",unit=' files',disable=not args.progress,mininterval=1)
+    for f in fl:
         outfile.write(str(File(f,args.hash_algo))+"\n")
 
 
