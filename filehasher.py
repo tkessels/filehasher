@@ -4,7 +4,12 @@ import os
 import hashlib
 import gzip
 import argparse
-import magic
+import sys
+try:
+    import magic
+except:
+    pass
+
 from tqdm import tqdm
 
 class File:
@@ -12,7 +17,7 @@ class File:
         self.filename=filename
         self.file=os.path.basename(filename)
         self.filesize=-1
-        self.hashes={}
+        self.results={}
         self.filetype=""
         self.errors=[]
         if os.path.isfile(filename):
@@ -22,7 +27,7 @@ class File:
                     hashers=[hashlib.new(hashtype) for hashtype in hashtypes]
                     hpb=tqdm(total=self.filesize,desc=self.file,unit='bytes',leave=False,mininterval=0.5,disable=not args.progress)
                     try:
-                        self.filetype=magic.from_file(self.filename,mime=True)
+                        if args.magic : self.filetype=magic.from_file(self.filename,mime=True)
                         with open(filename, 'rb') as f:
                             while True:
                                 data = f.read(65536)
@@ -36,7 +41,7 @@ class File:
                     except Exception as e:
                         self.errors.append("File could not be read")
                         print(e )
-                    self.hashes={h.name:h.hexdigest() for h in hashers}
+                    self.results={h.name:h.hexdigest() for h in hashers}
                     hpb.close()
                 else:
                     self.errors.append("File too big")
@@ -46,7 +51,7 @@ class File:
             self.errors.append("Not a regular file")
 
     def __str__(self):
-        return "{};{};{};{};{}".format(self.filename,self.filesize,self.filetype,str(self.hashes),str(self.errors))
+        return "{};{};{};{};{}".format(self.filename,self.filesize,self.filetype,str(self.results),str(self.errors))
 
 def log(message,loglevel=2):
     level=["error","info","debug","trace"]
@@ -94,6 +99,7 @@ def main():
     global args
     args = parser.parse_args()
 
+    args.magic='magic' in sys.modules
     if args.hash_algo:
         for h in args.hash_algo:
             if h not in hashlib.algorithms_available:
