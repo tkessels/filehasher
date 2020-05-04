@@ -5,6 +5,7 @@ import hashlib
 import gzip
 import argparse
 import sys
+import platform
 try:
     import magic
 except:
@@ -30,13 +31,13 @@ class File:
                     hashers=[hashlib.new(hashtype) for hashtype in hashtypes]
                     hpb=None
                     if args.progress and args.verbosity>0:
-                        hpb=tqdm(total=self.filesize,desc=self.file,unit='bytes',leave=False,mininterval=0.5,disable=not args.progress)
+                        hpb=mtqdm(total=self.filesize,desc=self.file,unit='byte',leave=False)
                     try:
                         if args.magic : self.filetype=magic.from_file(self.filename,mime=True)
                         with open(filename, 'rb') as f:
                             while True:
                                 data = f.read(65536)
-                                if hpb : hpb.update(len(data))
+                                if hpb is not None : hpb.update(len(data))
 
                                 if not data:
                                     break
@@ -47,7 +48,7 @@ class File:
                         self.errors.append("File could not be read")
                         print(e )
                     self.results={h.name:h.hexdigest() for h in hashers}
-                    if hpb : hpb.close()
+                    if hpb is not None : hpb.close()
                 else:
                     self.errors.append("File too big")
             else:
@@ -58,17 +59,23 @@ class File:
     def __str__(self):
         return "{};{};{};{};{}".format(self.filename,self.filesize,self.filetype,str(self.results),str(self.errors))
 
+def mtqdm(*args,**kwargs):
+    ascii_only = True if platform.system() == 'Windows' else False
+    if 'mininterval' not in kwargs: kwargs["mininterval"]=1
+    if 'ascii' not in kwargs : kwargs['ascii']=ascii_only
+    return tqdm(*args,**kwargs)
+
+
 def log(message,loglevel=2):
     level=["error","info","debug","trace"]
     if loglevel < args.verbosity:
         print("[{}] : {}".format(level[loglevel],message.rstrip()))
 
 def get_filelist(basepath):
-    if args.progress : fpb=tqdm(desc="Dicovering Files",unit=' files',mininterval=1)
+    fpb=mtqdm(desc="Dicovering Files",unit=' file') if args.progress else None
     filelist=[]
     excludedfolders=[]
     for path,folders,files in os.walk(basepath,topdown=True):
-        if args.progress : fpb.update(len(files))
         log("processing path {}".format(path),3)
         log("following folders were found: {}".format(str(folders)),3)
 
@@ -78,7 +85,7 @@ def get_filelist(basepath):
             if path in args.ignore_dir:
                 excludedfolders.append(path)
                 folders.clear()
-                file.clear()
+                files.clear()
 
             # remove subfolders if subfoldernames are in ignorelist
             excluded_subfolders=[x for x in folders if x in args.ignore_dir]
@@ -87,8 +94,9 @@ def get_filelist(basepath):
                 folders.remove(subfolder)
                 excludedfolders.append(os.path.join(path,subfolder))
 
+        if (fpb is not None) and (len(files) > 0) : fpb.update(len(files))
         filelist.extend([os.path.join(path,f) for f in files])
-    if args.progress : fpb.close()
+    if fpb is not None : fpb.close()
     return filelist,excludedfolders
 
 def main():
@@ -129,7 +137,7 @@ def main():
         args.ignore_dir=[x.rstrip(os.path.sep) for x in args.ignore_dir]
     #build filelist
     fl,ef=get_filelist(args.basepath)
-    if args.progress : fl=tqdm(fl,desc="Hashing...",unit=' files',disable=not args.progress,mininterval=1)
+    if args.progress : fl=mtqdm(fl,desc="Hashing",unit='file')
     for f in fl:
         outfile.write(str(File(f,args.hash_algo))+"\n")
 
