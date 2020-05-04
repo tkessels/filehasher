@@ -71,11 +71,14 @@ def log(message,loglevel=2):
     if loglevel < args.verbosity:
         print("[{}] : {}".format(level[loglevel],message.rstrip()))
 
+def fileerror(exception):
+    log("Error walking path : {} [{}]".format(exception.filename,exception.strerror),0)
+
 def get_filelist(basepath):
     fpb=mtqdm(desc="Dicovering Files",unit=' file') if args.progress else None
     filelist=[]
     excludedfolders=[]
-    for path,folders,files in os.walk(basepath,topdown=True):
+    for path,folders,files in os.walk(basepath,onerror=fileerror,topdown=True):
         log("processing path {}".format(path),3)
         log("following folders were found: {}".format(str(folders)),3)
 
