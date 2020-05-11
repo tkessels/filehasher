@@ -6,6 +6,7 @@ import gzip
 import argparse
 import sys
 import platform
+import re
 
 try:
     import magic
@@ -122,7 +123,7 @@ def main():
                         action='append', required=False)
     parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase output verbosity",
                         required=False)
-    parser.add_argument("-o", "--outfile", metavar='<OUTFILE>', default="md5hashes.txt.gz",
+    parser.add_argument("-o", "--outfile", metavar='<OUTFILE>',
                         help="Outputfile for hashlist", required=False)
     parser.add_argument("-t", "--text", action='store_true', help="Disable compression for outfile")
     parser.add_argument("-np", "--no-progress", dest="progress", action='store_false', help="Show progressbar")
@@ -132,10 +133,13 @@ def main():
     parser.add_argument("-b", "--basepath", default=os.path.sep, help="Basepath for hashing")
     global args
     args = parser.parse_args()
+    #process arguments
 
+    #if tqdm is not installed disable progressbars
     if 'tqdm' not in sys.modules: args.progress = False
     args.magic = 'magic' in sys.modules
 
+    #if specified hashalgos are not supported exit with error
     if args.hash_algo:
         for h in args.hash_algo:
             if h not in hashlib.algorithms_available:
@@ -144,12 +148,17 @@ def main():
     else:
         args.hash_algo = ['md5', 'sha256']
 
+    if not args.outfile:
+        pat=re.compile('[^a-zA-Z0-9_-]+')
+        hostname=pat.sub("_",platform.node().lower().strip())
+        args.outfile="{}_hashlist.txt".format(hostname)
+
     log(str(args))
 
     if args.text:
         outfile = open(args.outfile, 'wt')
     else:
-        outfile = gzip.open(args.outfile, 'wt')
+        outfile = gzip.open(args.outfile+".gz", 'wt')
 
     # remote trailing slashes from excluded folder names
     if args.ignore_dir:
