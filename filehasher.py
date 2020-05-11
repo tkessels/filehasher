@@ -154,6 +154,8 @@ def main():
     # remote trailing slashes from excluded folder names
     if args.ignore_dir:
         args.ignore_dir = [x.rstrip(os.path.sep) for x in args.ignore_dir]
+    if platform.system() == 'Linux':
+        args.ignore_dir=['/proc','/sys'] if args.ignore_dir is None else args.ignore_dir + ['/proc','/sys']
     # build filelist
     fl, ef = get_filelist(args.basepath)
     if args.progress: fl = mtqdm(fl, desc="Hashing", unit='file')
