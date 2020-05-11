@@ -1,3 +1,4 @@
 *.txt.gz
 *.txt
 issues
+.idea/
