@@ -124,7 +124,7 @@ def main():
                 print("Hashingalgorithm '{}' is not supported".format(h))
                 exit(1)
     else:
-        args.hash_algo=['md5']
+        args.hash_algo=['md5','sha256']
 
 
 
