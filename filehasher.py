@@ -96,7 +96,7 @@ def setup_logging():
 
 
 def fileerror(exception):
-    log.warn("{} : Couldn't walk path [{}]".format(exception.filename, exception.strerror))
+    log.warning("{} : Couldn't walk path [{}]".format(exception.filename, exception.strerror))
 
 def get_hostname():
     pat=re.compile('[^a-zA-Z0-9_-]+')
