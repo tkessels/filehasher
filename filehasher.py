@@ -7,6 +7,7 @@ import argparse
 import sys
 import platform
 import re
+import logging as log
 
 try:
     import magic
@@ -72,38 +73,59 @@ def mtqdm(*args, **kwargs):
     return tqdm(*args, **kwargs)
 
 
-def log(message, loglevel=2):
-    level = ["error", "info", "debug", "trace"]
-    if loglevel < args.verbosity:
-        print("[{}] : {}".format(level[loglevel], message.rstrip()))
+def setup_logging():
+    #Create logger with max verbosity
+    logger=log.getLogger()
+    logger.setLevel(log.DEBUG)
+    formatter = log.Formatter('%(asctime)s:%(levelname)s: %(message)s')
+    # formatter = log.Formatter(log.BASIC_FORMAT)
+
+    console_log = log.StreamHandler()
+    console_log.setFormatter(formatter)
+    console_log.setLevel(log.ERROR)
+
+    file_log = log.FileHandler(get_hostname()+".log")
+    file_log.setFormatter(formatter)
+    file_log.setLevel(log.INFO)
+
+
+    logger.addHandler(file_log)
+    logger.addHandler(console_log)
+    log.info("Logging started...")
+
 
 
 def fileerror(exception):
-    log("Error walking path : {} [{}]".format(exception.filename, exception.strerror), 0)
+    log.warn("{} : Couldn't walk path [{}]".format(exception.filename, exception.strerror))
 
+def get_hostname():
+    pat=re.compile('[^a-zA-Z0-9_-]+')
+    return pat.sub("_",platform.node().lower().strip())
 
 def get_filelist(basepath):
     fpb = mtqdm(desc="Dicovering Files", unit=' file') if args.progress else None
     filelist = []
     excludedfolders = []
     for path, folders, files in os.walk(basepath, onerror=fileerror, topdown=True):
-        log("processing path {}".format(path), 3)
-        log("following folders were found: {}".format(str(folders)), 3)
+        log.debug("processing path {}".format(path))
+        log.debug("following folders were found: {}".format(str(folders)))
 
         # remove ignored foldersfrom traversal list
         if args.ignore_dir:
             # skip if path is in ignore list
             if path in args.ignore_dir:
+                log.info("{} will be ignored".format(path))
                 excludedfolders.append(path)
                 folders.clear()
                 files.clear()
 
             # remove subfolders if subfoldernames are in ignorelist
             excluded_subfolders = [x for x in folders if x in args.ignore_dir]
-            log("following folders will be excluded: {}".format(str(excluded_subfolders)), 2)
             for subfolder in excluded_subfolders:
                 folders.remove(subfolder)
-                excludedfolders.append(os.path.join(path, subfolder))
+                fullpath=os.path.join(path, subfolder)
+                log.info("{} will be ignored".format(fullpath))
+                excludedfolders.append(fullpath)
 
         if (fpb is not None) and (len(files) > 0): fpb.update(len(files))
         filelist.extend([os.path.join(path, f) for f in files])
@@ -132,6 +154,10 @@ def main():
                             str(hashlib.algorithms_available)))
     parser.add_argument("-b", "--basepath", default=os.path.sep, help="Basepath for hashing")
     global args
+
+    setup_logging()
+
+
     args = parser.parse_args()
     #process arguments
 
@@ -149,11 +175,7 @@ def main():
         args.hash_algo = ['md5', 'sha256']
 
     if not args.outfile:
-        pat=re.compile('[^a-zA-Z0-9_-]+')
-        hostname=pat.sub("_",platform.node().lower().strip())
-        args.outfile="{}_hashlist.txt".format(hostname)
-
-    log(str(args))
+        args.outfile="{}_hashlist.txt".format(get_hostname())
 
     if args.text:
         outfile = open(args.outfile, 'wt')
@@ -165,6 +187,12 @@ def main():
         args.ignore_dir = [x.rstrip(os.path.sep) for x in args.ignore_dir]
     if platform.system() == 'Linux':
         args.ignore_dir=['/proc','/sys'] if args.ignore_dir is None else args.ignore_dir + ['/proc','/sys']
+
+    log.info(str(args))
+    log.info(platform.platform())
+    log.info(platform.release())
+
+
     # build filelist
     fl, ef = get_filelist(args.basepath)
     if args.progress: fl = mtqdm(fl, desc="Hashing", unit='file')
