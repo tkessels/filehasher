@@ -7,7 +7,7 @@ import argparse
 import sys
 import platform
 import re
-import logging as log
+import logging
 
 try:
     import magic
@@ -76,22 +76,23 @@ def mtqdm(*args, **kwargs):
 
 def setup_logging():
     #Create logger with max verbosity
-    logger=log.getLogger()
-    logger.setLevel(log.DEBUG)
-    formatter = log.Formatter('%(asctime)s:%(levelname)s: %(message)s')
+    global log
+    log=logging.getLogger("filehasher")
+    log.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
     # formatter = log.Formatter(log.BASIC_FORMAT)
 
-    console_log = log.StreamHandler()
+    console_log = logging.StreamHandler()
     console_log.setFormatter(formatter)
-    console_log.setLevel(log.ERROR)
+    console_log.setLevel(logging.ERROR)
 
-    file_log = log.FileHandler(get_hostname()+".log")
+    file_log = logging.FileHandler(get_hostname()+".log")
     file_log.setFormatter(formatter)
-    file_log.setLevel(log.INFO)
+    file_log.setLevel(logging.INFO)
 
 
-    logger.addHandler(file_log)
-    logger.addHandler(console_log)
+    log.addHandler(file_log)
+    log.addHandler(console_log)
     log.info("Logging started...")
 
 
