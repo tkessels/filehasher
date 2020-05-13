@@ -39,7 +39,8 @@ class File:
                     if args.progress and args.verbosity > 0:
                         hpb = mtqdm(total=self.filesize, desc=self.file, unit='byte', leave=False)
                     try:
-                        if args.magic: self.filetype = magic.from_file(self.filename, mime=True)
+                        if args.magic:
+                            self.filetype = magic.from_file(self.filename, mime=True)
                         with open(filename, 'rb') as f:
                             while True:
                                 data = f.read(65536)
@@ -157,7 +158,6 @@ def main():
 
     setup_logging()
 
-
     args = parser.parse_args()
     #process arguments
 
@@ -192,12 +192,16 @@ def main():
     log.info(platform.platform())
     log.info(platform.release())
 
-
     # build filelist
     fl, ef = get_filelist(args.basepath)
     if args.progress: fl = mtqdm(fl, desc="Hashing", unit='file')
-    for f in fl:
-        outfile.write(str(File(f, args.hash_algo)) + "\n")
+    try:
+        for f in fl:
+            outfile.write(str(File(f, args.hash_algo)) + "\n")
+    except KeyboardInterrupt:
+        outfile.close()
+
+    log.info("Done")
 
 
 if __name__ == '__main__':
