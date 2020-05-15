@@ -1,4 +1,5 @@
 *.txt.gz
 *.txt
+*.log
 issues
 .idea/
