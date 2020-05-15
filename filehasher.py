@@ -21,50 +21,84 @@ except:
 
 
 class File:
-    def __init__(self, filename: str, hashtypes=None):
+    def __init__(self, file: str, hashtypes=None):
         if hashtypes is None:
-            hashtypes = ['md5']
-        self.filename = filename
-        self.file = os.path.basename(filename)
-        self.filesize = -1
-        self.results = {}
-        self.filetype = ""
-        self.errors = []
-        if os.path.isfile(filename):
-            if os.access(filename, os.R_OK):
-                self.filesize = os.path.getsize(filename)
-                if self.filesize >= 0 and ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
-                    hashers = [hashlib.new(hashtype) for hashtype in hashtypes]
-                    hpb = None
-                    if args.progress and args.verbosity > 0:
-                        hpb = mtqdm(total=self.filesize, desc=self.file, unit='byte', leave=False)
-                    try:
-                        if args.magic:
-                            self.filetype = magic.from_file(self.filename, mime=True)
-                        with open(filename, 'rb') as f:
-                            while True:
-                                data = f.read(65536)
-                                if hpb is not None: hpb.update(len(data))
-
-                                if not data:
-                                    break
-                                else:
-                                    for hasher in hashers:
-                                        hasher.update(data)
-                    except Exception as e:
-                        self.errors.append("File could not be read")
-                        print(e)
-                    self.results = {h.name: h.hexdigest() for h in hashers}
-                    if hpb is not None: hpb.close()
-                else:
-                    self.errors.append("File too big")
-            else:
-                self.errors.append("Can't read file")
+            self.hashtypes = ['md5']
         else:
-            self.errors.append("Not a regular file")
+            self.hashtypes = hashtypes
+
+        self.file = file
+        self.filename = os.path.basename(self.file)
+        self.results = {}
+        self.errors = []
+
+        if self.is_accessible():
+            self.results.update(self.get_magic())
+            if self.is_file():
+                self.filesize = self.get_size()
+                if self.filesize >= 0 and ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
+                    self.results.update(self.get_hashes())
+
+    def is_accessible(self):
+        try:
+            return os.access(self.file, os.R_OK)
+        except Exception as e:
+            self.errors.append("FileAccessError[{}]".format(e.strerror))
+            return False
+
+    def is_file(self):
+        try:
+            return os.path.isfile(self.file)
+        except Exception as e:
+            self.errors.append("FileCheckError[{}]".format(e.strerror))
+            return False
+
+    def get_size(self):
+        try:
+            size = os.path.getsize(self.file)
+        except Exception as e:
+            self.errors.append("FileSizeError[{}]".format(e.strerror))
+            return -1
+        return size
+
+    def get_magic(self):
+        if 'magic' in sys.modules:
+            try:
+                result={}
+                result["file_type"]=magic.from_file(self.file)
+                result["file_mime"]=magic.from_file(self.file, mime=True)
+
+                return result
+            except Exception as e:
+                self.errors.append("MagicError[{}]".format(e.strerror))
+        return {}
 
     def __str__(self):
-        return "{};{};{};{};{}".format(self.filename, self.filesize, self.filetype, str(self.results), str(self.errors))
+        result = {"file_name": self.file, "file_size": self.get_size(), "results": self.results, "errors": self.errors}
+        return str(result)
+
+    def get_hashes(self):
+        hashers = [hashlib.new(hashtype) for hashtype in self.hashtypes]
+        hpb = None
+        if args.progress and args.verbosity > 0:
+            hpb = mtqdm(total=self.filesize, desc=self.filename, unit='byte', leave=False)
+        try:
+            with open(self.file, 'rb') as f:
+                data = f.read(65536)
+                while len(data) > 0:
+                    if hpb is not None: hpb.update(len(data))
+                    for hasher in hashers:
+                        hasher.update(data)
+                    data = f.read(65536)
+        except Exception as e:
+            self.errors.append("FileHashError[{}]".format(e.strerror))
+        if hpb is not None:
+            hpb.close()
+        result={}
+        for hasher in hashers:
+            result[hasher.name]=hasher.hexdigest()
+        return result
+
 
 
 def mtqdm(*args, **kwargs):
