@@ -75,9 +75,9 @@ def mtqdm(*args, **kwargs):
 
 
 def setup_logging():
-    #Create logger with max verbosity
+    # Create logger with max verbosity
     global log
-    log=logging.getLogger("filehasher")
+    log = logging.getLogger("filehasher")
     log.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
     # formatter = log.Formatter(log.BASIC_FORMAT)
@@ -86,23 +86,23 @@ def setup_logging():
     console_log.setFormatter(formatter)
     console_log.setLevel(logging.ERROR)
 
-    file_log = logging.FileHandler(get_hostname()+".log")
+    file_log = logging.FileHandler(get_hostname() + ".log")
     file_log.setFormatter(formatter)
     file_log.setLevel(logging.INFO)
-
 
     log.addHandler(file_log)
     log.addHandler(console_log)
     log.info("Logging started...")
 
 
-
 def fileerror(exception):
     log.warning("{} : Couldn't walk path [{}]".format(exception.filename, exception.strerror))
 
+
 def get_hostname():
-    pat=re.compile('[^a-zA-Z0-9_-]+')
-    return pat.sub("_",platform.node().lower().strip())
+    pat = re.compile('[^a-zA-Z0-9_-]+')
+    return pat.sub("_", platform.node().lower().strip())
+
 
 def get_filelist(basepath):
     fpb = mtqdm(desc="Dicovering Files", unit=' file') if args.progress else None
@@ -125,7 +125,7 @@ def get_filelist(basepath):
             excluded_subfolders = [x for x in folders if x in args.ignore_dir]
             for subfolder in excluded_subfolders:
                 folders.remove(subfolder)
-                fullpath=os.path.join(path, subfolder)
+                fullpath = os.path.join(path, subfolder)
                 log.info("{} will be ignored".format(fullpath))
                 excludedfolders.append(fullpath)
 
@@ -160,13 +160,13 @@ def main():
     setup_logging()
 
     args = parser.parse_args()
-    #process arguments
+    # process arguments
 
-    #if tqdm is not installed disable progressbars
+    # if tqdm is not installed disable progressbars
     if 'tqdm' not in sys.modules: args.progress = False
     args.magic = 'magic' in sys.modules
 
-    #if specified hashalgos are not supported exit with error
+    # if specified hashalgos are not supported exit with error
     if args.hash_algo:
         for h in args.hash_algo:
             if h not in hashlib.algorithms_available:
@@ -176,18 +176,18 @@ def main():
         args.hash_algo = ['md5', 'sha256']
 
     if not args.outfile:
-        args.outfile="{}_hashlist.txt".format(get_hostname())
+        args.outfile = "{}_hashlist.txt".format(get_hostname())
 
     if args.text:
         outfile = open(args.outfile, 'wt')
     else:
-        outfile = gzip.open(args.outfile+".gz", 'wt')
+        outfile = gzip.open(args.outfile + ".gz", 'wt')
 
     # remote trailing slashes from excluded folder names
     if args.ignore_dir:
         args.ignore_dir = [x.rstrip(os.path.sep) for x in args.ignore_dir]
     if platform.system() == 'Linux':
-        args.ignore_dir=['/proc','/sys'] if args.ignore_dir is None else args.ignore_dir + ['/proc','/sys']
+        args.ignore_dir = ['/proc', '/sys'] if args.ignore_dir is None else args.ignore_dir + ['/proc', '/sys']
 
     log.info(str(args))
     log.info(platform.platform())
