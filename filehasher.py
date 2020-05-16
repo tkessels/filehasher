@@ -109,6 +109,8 @@ def mtqdm(*args, **kwargs):
         kwargs["mininterval"] = 1
     if 'ascii' not in kwargs:
         kwargs['ascii'] = ascii_only
+    if 'dynamic_ncols' not in kwargs:
+        kwargs['dynamic_ncols'] = True
     return tqdm(*args, **kwargs)
 
 
