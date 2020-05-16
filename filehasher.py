@@ -95,6 +95,7 @@ class File:
                     data = f.read(65536)
         except OSError as e:
             self.errors.append("FileHashError[{}]".format(e.strerror))
+            return {}
         if hpb is not None:
             hpb.close()
         result = {}
