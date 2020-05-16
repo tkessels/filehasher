@@ -191,7 +191,7 @@ def main():
     parser.add_argument("-o", "--outfile", metavar='<OUTFILE>',
                         help="Outputfile for hashlist", required=False)
     parser.add_argument("-t", "--text", action='store_true', help="Disable compression for outfile")
-    parser.add_argument("-np", "--no-progress", dest="progress", action='store_false', help="Show progressbar")
+    parser.add_argument("-np", "--no-progress", dest="progress", action='store_false', help="Do not show progressbar")
     parser.add_argument("-c", "--hash-algo", action='append',
                         help="Select Hashingalgorithm to use. Must be one of:\n{}".format(
                             str(hashlib.algorithms_available)))
