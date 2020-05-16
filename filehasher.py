@@ -64,10 +64,10 @@ class File:
     def get_magic(self):
         if 'magic' in sys.modules:
             try:
-                result={}
-                result["file_type"]=magic.from_file(self.file)
-                result["file_mime"]=magic.from_file(self.file, mime=True)
-
+                result = {
+                    "file_type": magic.from_file(self.file),
+                    "file_mime": magic.from_file(self.file, mime=True)
+                }
                 return result
             except OSError as e:
                 self.errors.append("MagicError[{}]".format(e.strerror))
@@ -88,7 +88,8 @@ class File:
             with open(self.file, 'rb') as f:
                 data = f.read(65536)
                 while len(data) > 0:
-                    if hpb is not None: hpb.update(len(data))
+                    if hpb is not None:
+                        hpb.update(len(data))
                     for hasher in hashers:
                         hasher.update(data)
                     data = f.read(65536)
@@ -96,17 +97,18 @@ class File:
             self.errors.append("FileHashError[{}]".format(e.strerror))
         if hpb is not None:
             hpb.close()
-        result={}
+        result = {}
         for hasher in hashers:
-            result[hasher.name]=hasher.hexdigest()
+            result[hasher.name] = hasher.hexdigest()
         return result
-
 
 
 def mtqdm(*args, **kwargs):
     ascii_only = True if platform.system() == 'Windows' else False
-    if 'mininterval' not in kwargs: kwargs["mininterval"] = 1
-    if 'ascii' not in kwargs: kwargs['ascii'] = ascii_only
+    if 'mininterval' not in kwargs:
+        kwargs["mininterval"] = 1
+    if 'ascii' not in kwargs:
+        kwargs['ascii'] = ascii_only
     return tqdm(*args, **kwargs)
 
 
