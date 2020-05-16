@@ -42,21 +42,21 @@ class File:
     def is_accessible(self):
         try:
             return os.access(self.file, os.R_OK)
-        except Exception as e:
+        except OSError as e:
             self.errors.append("FileAccessError[{}]".format(e.strerror))
             return False
 
     def is_file(self):
         try:
             return os.path.isfile(self.file)
-        except Exception as e:
+        except OSError as e:
             self.errors.append("FileCheckError[{}]".format(e.strerror))
             return False
 
     def get_size(self):
         try:
             size = os.path.getsize(self.file)
-        except Exception as e:
+        except OSError as e:
             self.errors.append("FileSizeError[{}]".format(e.strerror))
             return -1
         return size
@@ -69,8 +69,10 @@ class File:
                 result["file_mime"]=magic.from_file(self.file, mime=True)
 
                 return result
-            except Exception as e:
+            except OSError as e:
                 self.errors.append("MagicError[{}]".format(e.strerror))
+            except magic.MagicException as e:
+                self.errors.append("MagicError[{}]".format(str(e)))
         return {}
 
     def __str__(self):
@@ -90,7 +92,7 @@ class File:
                     for hasher in hashers:
                         hasher.update(data)
                     data = f.read(65536)
-        except Exception as e:
+        except OSError as e:
             self.errors.append("FileHashError[{}]".format(e.strerror))
         if hpb is not None:
             hpb.close()
