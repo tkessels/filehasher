@@ -32,6 +32,7 @@ class File:
         self.filename = os.path.basename(self.file)
         self.results = {}
         self.errors = []
+        self.filesize = -1
 
         if self.is_accessible():
             self.results.update(self.get_magic())
@@ -77,7 +78,7 @@ class File:
         return {}
 
     def __str__(self):
-        result = {"file_name": self.file, "file_size": self.get_size(), "results": self.results, "errors": self.errors}
+        result = {"file_name": self.file, "file_size": self.filesize, "results": self.results, "errors": self.errors}
         return json.dumps(result)
 
     def get_hashes(self):
