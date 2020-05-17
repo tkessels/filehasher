@@ -8,6 +8,7 @@ import sys
 import platform
 import re
 import logging
+import json
 
 try:
     import magic
@@ -77,7 +78,7 @@ class File:
 
     def __str__(self):
         result = {"file_name": self.file, "file_size": self.get_size(), "results": self.results, "errors": self.errors}
-        return str(result)
+        return json.dumps(result)
 
     def get_hashes(self):
         hashers = [hashlib.new(hashtype) for hashtype in self.hashtypes]
