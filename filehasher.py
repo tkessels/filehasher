@@ -11,6 +11,11 @@ import logging
 import json
 
 try:
+    import lief
+except:
+    pass
+
+try:
     import magic
 except:
     pass
@@ -35,11 +40,16 @@ class File:
         self.filesize = -1
 
         if self.is_accessible():
-            self.results.update(self.get_magic())
+            magic=self.get_magic()
+            self.results.update(magic)
             if self.is_file():
                 self.filesize = self.get_size()
                 if self.filesize >= 0 and ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
                     self.results.update(self.get_hashes())
+                    if 'file_mime' in magic:
+                        if "application/x-dosexec" in magic["file_mime"] or "application/octet-stream" in magic["file_mime"]:
+                            self.results.update(self.get_signer())
+                            # self.resulls.update(self.get_imphash())
 
     def is_accessible(self):
         try:
@@ -62,6 +72,23 @@ class File:
             self.errors.append("FileSizeError[{}]".format(e.strerror))
             return -1
         return size
+
+    def get_signer(self):
+        if 'lief' in sys.modules:
+            try:
+                bin_obj=lief.parse(self.file)
+                if bin_obj is not None and bin_obj.has_signature:
+                    signer=bin_obj.signature.signer_info.issuer
+                    result = {
+                        "signer": signer[0],
+                        "signer_serial": ''.join(format(x, '02x') for x in signer[1])
+                    }
+                    return result
+            except OSError as e:
+                self.errors.append("LiefError[{}]".format(e.strerror))
+            except Exception as e:
+                self.errors.append("LiefError[{}]".format(str(e)))
+        return {}
 
     def get_magic(self):
         if 'magic' in sys.modules:
