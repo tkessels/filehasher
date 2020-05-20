@@ -9,6 +9,7 @@ import platform
 import re
 import logging
 import json
+import stat
 
 try:
     import lief
@@ -38,18 +39,21 @@ class File:
         self.results = {}
         self.errors = []
         self.filesize = -1
+        self.stat = None
 
         if self.is_accessible():
-            magic=self.get_magic()
-            self.results.update(magic)
-            if self.is_file():
-                self.filesize = self.get_size()
-                if self.filesize >= 0 and ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
-                    self.results.update(self.get_hashes())
-                    if 'file_mime' in magic:
-                        if "application/x-dosexec" in magic["file_mime"] or "application/octet-stream" in magic["file_mime"]:
-                            self.results.update(self.get_signer())
-                            # self.resulls.update(self.get_imphash())
+            self.stat=self.get_stat()
+            if not self.is_fifo():
+                magic=self.get_magic()
+                self.results.update(magic)
+                if self.is_file():
+                    self.filesize = self.get_size()
+                    if self.filesize >= 0 and ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
+                        self.results.update(self.get_hashes())
+                        if 'file_mime' in magic:
+                            if "application/x-dosexec" in magic["file_mime"] or "application/octet-stream" in magic["file_mime"]:
+                                self.results.update(self.get_signer())
+                                # self.resulls.update(self.get_imphash())
 
     def is_accessible(self):
         try:
@@ -57,6 +61,29 @@ class File:
         except OSError as e:
             self.errors.append("FileAccessError[{}]".format(e.strerror))
             return False
+
+    def is_fifo(self):
+        try:
+            return stat.S_ISFIFO(self.get_stat().st_mode)
+        except OSError as e:
+            self.errors.append("FileFIFOError[{}]".format(e.strerror))
+            return False
+
+    def is_regular_file(self):
+        try:
+            return stat.S_ISREG(self.get_stat().st_mode)
+        except OSError as e:
+            self.errors.append("FileFIFOError[{}]".format(e.strerror))
+            return False
+
+    def get_stat(self):
+        if self.stat is not None:
+            return self.stat
+        try:
+            return os.stat(self.file)
+        except OSError as e:
+            self.errors.append("FileSTATError[{}]".format(e.strerror))
+            return None
 
     def is_file(self):
         try:
