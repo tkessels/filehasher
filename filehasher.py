@@ -248,6 +248,8 @@ def main():
                         help="Outputfile for hashlist", required=False)
     parser.add_argument("-t", "--text", action='store_true', help="Disable compression for outfile")
     parser.add_argument("-np", "--no-progress", dest="progress", action='store_false', help="Do not show progressbar")
+    parser.add_argument("-nm", "--no-magic", dest="magic", action='store_false', help="Do not detect filetypes with libmagic")
+    parser.add_argument("-ns", "--no-signer", dest="lief", action='store_false', help="Do extract digital signatures from binaries")
     parser.add_argument("-c", "--hash-algo", action='append',
                         help="Select Hashingalgorithm to use. Must be one of:\n{}".format(
                             str(hashlib.algorithms_available)))
@@ -260,8 +262,21 @@ def main():
     # process arguments
 
     # if tqdm is not installed disable progressbars
-    if 'tqdm' not in sys.modules: args.progress = False
-    args.magic = 'magic' in sys.modules
+    if 'tqdm' not in sys.modules:
+        args.progress = False
+        log.warning("module tqdm not loaded")
+        log.warning("Progressbars disabled")
+
+    if 'magic' not in sys.modules:
+        args.magic = False
+        log.warning("module magic not loaded")
+        log.warning("Filetype identification disabled")
+
+    if 'lief' not in sys.modules:
+        args.lief = False
+        log.warning("module lief not loaded")
+        log.warning("Signature extraction for binaries disabled")
+
 
     # if specified hashalgos are not supported exit with error
     if args.hash_algo:
