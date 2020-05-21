@@ -42,16 +42,16 @@ class File:
         self.stat = None
 
         if self.is_accessible():
-            self.stat=self.get_stat()
+            self.stat = self.get_stat()
             if not self.is_fifo():
-                magic=self.get_magic()
-                self.results.update(magic)
+                filemagic = self.get_magic()
+                self.results.update(filemagic)
                 if self.is_file():
                     self.filesize = self.get_size()
                     if self.filesize >= 0 and ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
                         self.results.update(self.get_hashes())
-                        if 'file_mime' in magic:
-                            if "application/x-dosexec" in magic["file_mime"] or "application/octet-stream" in magic["file_mime"]:
+                        if 'file_mime' in filemagic:
+                            if "application/x-dosexec" in filemagic["file_mime"] or "application/octet-stream" in filemagic["file_mime"]:
                                 self.results.update(self.get_signer())
                                 # self.resulls.update(self.get_imphash())
 
@@ -103,9 +103,9 @@ class File:
     def get_signer(self):
         if 'lief' in sys.modules:
             try:
-                bin_obj=lief.parse(self.file)
+                bin_obj = lief.parse(self.file)
                 if bin_obj is not None and bin_obj.has_signature:
-                    signer=bin_obj.signature.signer_info.issuer
+                    signer = bin_obj.signature.signer_info.issuer
                     result = {
                         "signer": signer[0],
                         "signer_serial": ''.join(format(x, '02x') for x in signer[1])
@@ -276,7 +276,6 @@ def main():
         args.lief = False
         log.warning("module lief not loaded")
         log.warning("Signature extraction for binaries disabled")
-
 
     # if specified hashalgos are not supported exit with error
     if args.hash_algo:
