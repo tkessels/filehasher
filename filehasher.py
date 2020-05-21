@@ -51,9 +51,10 @@ class File:
                     if self.filesize >= 0 and ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
                         self.results.update(self.get_hashes())
                         if 'file_mime' in filemagic:
-                            if "application/x-dosexec" in filemagic["file_mime"] or "application/octet-stream" in filemagic["file_mime"]:
+                            if "application/x-dosexec" in filemagic["file_mime"]:
                                 self.results.update(self.get_signer())
-                                # self.resulls.update(self.get_imphash())
+                            if "application/octet-stream" in filemagic["file_mime"]:
+                                self.results.update(self.get_signer())
 
     def is_accessible(self):
         try:
