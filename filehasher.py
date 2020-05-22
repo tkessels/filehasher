@@ -43,7 +43,9 @@ class File:
 
         if self.is_accessible():
             self.stat = self.get_stat()
-            if not self.is_fifo():
+            if self.is_fifo():
+                self.errors.append("FileIsPipeError")
+            else:
                 filemagic = self.get_magic()
                 self.results.update(filemagic)
                 if self.is_file():
