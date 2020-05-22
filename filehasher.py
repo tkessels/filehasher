@@ -318,15 +318,22 @@ def main():
     log.info("File Hashing started")
     if args.progress: fl = mtqdm(fl, desc="Hashing", unit='file')
     try:
+        filecount=0
         for f in fl:
             try:
                 outfile.write(str(File(f, args.hash_algo)) + "\n")
+                filecount+=1
             except Exception as e:
                 log.error("Unexpected Error [{}] while Processing File. [{}]".format(str(e),f))
         log.info("File Hashing completed")
-        log.info("Done")
     finally:
         outfile.close()
+    log.info("Analyzed {}/{} files.".format(filecount,len(fl)))
+    with open(outfile.name,'rb') as hashlistfile:
+        hasher=hashlib.md5()
+        hasher.update(hashlistfile.read())
+    log.info(hasher.hexdigest())
+    log.info("Done")
 
 
 
