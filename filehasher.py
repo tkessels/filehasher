@@ -324,12 +324,14 @@ def main():
                 log.error("Unexpected Error [{}] while Processing File. [{}]".format(str(e),f))
         log.info("File Hashing completed")
         log.info("Done")
-    except KeyboardInterrupt:
-        log.warning("Keyboard Interrupt detected: Exiting")
+    finally:
         outfile.close()
 
 
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        log.warning("Keyboard Interrupt detected: Exiting")
