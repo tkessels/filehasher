@@ -43,7 +43,7 @@ class File:
 
         if self.is_accessible():
             self.stat = self.get_stat()
-            if self.is_fifo():
+            if self.is_fifo() is None or self.is_fifo():
                 self.errors.append("FileIsPipeError")
             else:
                 filemagic = self.get_magic()
@@ -70,10 +70,12 @@ class File:
 
     def is_fifo(self):
         try:
-            return stat.S_ISFIFO(self.get_stat().st_mode)
+            stats=self.get_stat()
+            if stats is not None:
+                return stat.S_ISFIFO(stats.st_mode)
         except OSError as e:
             self.errors.append("FileFIFOError[{}]".format(e.strerror))
-            return False
+        return None
 
     def is_regular_file(self):
         try:
