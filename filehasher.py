@@ -187,7 +187,7 @@ def setup_logging():
     console_log.setFormatter(formatter)
     console_log.setLevel(logging.ERROR)
 
-    file_log = logging.FileHandler(get_hostname() + ".log")
+    file_log = logging.FileHandler(args.outfile + ".log")
     file_log.setFormatter(formatter)
     file_log.setLevel(logging.INFO)
 
@@ -259,10 +259,13 @@ def main():
                             str(hashlib.algorithms_available)))
     parser.add_argument("-b", "--basepath", default=os.path.sep, help="Basepath for hashing")
     global args
+    args = parser.parse_args()
+
+    if not args.outfile:
+        args.outfile = "{}_hashlist.txt".format(get_hostname())
 
     setup_logging()
 
-    args = parser.parse_args()
     # process arguments
 
     # if tqdm is not installed disable progressbars
@@ -290,8 +293,7 @@ def main():
     else:
         args.hash_algo = ['md5', 'sha256']
 
-    if not args.outfile:
-        args.outfile = "{}_hashlist.txt".format(get_hostname())
+
 
     if args.text:
         outfile = open(args.outfile, 'wt')
