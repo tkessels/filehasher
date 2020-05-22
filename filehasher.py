@@ -48,13 +48,16 @@ class File:
                 self.results.update(filemagic)
                 if self.is_file():
                     self.filesize = self.get_size()
-                    if self.filesize >= 0 and ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
-                        self.results.update(self.get_hashes())
-                        if 'file_mime' in filemagic:
-                            if "application/x-dosexec" in filemagic["file_mime"]:
-                                self.results.update(self.get_signer())
-                            if "application/octet-stream" in filemagic["file_mime"]:
-                                self.results.update(self.get_signer())
+                    if self.filesize >= 0:
+                        if ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
+                            self.results.update(self.get_hashes())
+                            if 'file_mime' in filemagic:
+                                if "application/x-dosexec" in filemagic["file_mime"]:
+                                    self.results.update(self.get_signer())
+                                if "application/octet-stream" in filemagic["file_mime"]:
+                                    self.results.update(self.get_signer())
+                        else:
+                            self.errors.append("FileTooBigError")
 
     def is_accessible(self):
         try:
