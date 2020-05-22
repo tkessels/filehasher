@@ -312,7 +312,6 @@ def main():
 
     log.info(str(args))
     log.info(platform.platform())
-    log.info(platform.release())
     log.info("Filelist Creation started")
     fl, ef = get_filelist(args.basepath)
     log.info("Filelist Creation completed")
