@@ -304,17 +304,24 @@ def main():
     log.info(str(args))
     log.info(platform.platform())
     log.info(platform.release())
-
-    # build filelist
+    log.info("Filelist Creation started")
     fl, ef = get_filelist(args.basepath)
+    log.info("Filelist Creation completed")
+    log.info("File Hashing started")
     if args.progress: fl = mtqdm(fl, desc="Hashing", unit='file')
     try:
         for f in fl:
-            outfile.write(str(File(f, args.hash_algo)) + "\n")
+            try:
+                outfile.write(str(File(f, args.hash_algo)) + "\n")
+            except Exception as e:
+                log.error("Unexpected Error [{}] while Processing File. [{}]".format(str(e),f))
+        log.info("File Hashing completed")
+        log.info("Done")
     except KeyboardInterrupt:
+        log.warning("Keyboard Interrupt detected: Exiting")
         outfile.close()
 
-    log.info("Done")
+
 
 
 if __name__ == '__main__':
