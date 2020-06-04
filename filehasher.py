@@ -114,9 +114,11 @@ class File:
                 bin_obj = lief.parse(self.file)
                 if bin_obj is not None and bin_obj.has_signature:
                     signer = bin_obj.signature.signer_info.issuer
+                    subjects = [cert.subject for cert in bin_obj.signature.certificates if cert.serial_number==signer[1] ]
                     result = {
                         "signer": signer[0],
-                        "signer_serial": ''.join(format(x, '02x') for x in signer[1])
+                        "signer_serial": ''.join(format(x, '02x') for x in signer[1]),
+                        "signer_subject": ';'.join(subjects)
                     }
                     return result
             except OSError as e:
