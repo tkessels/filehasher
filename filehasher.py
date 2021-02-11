@@ -109,7 +109,7 @@ class File:
         return size
 
     def get_signer(self):
-        if 'lief' in sys.modules:
+        if args.lief:
             try:
                 bin_obj = lief.parse(self.file)
                 if bin_obj is not None and bin_obj.has_signature:
