@@ -11,19 +11,25 @@ import logging
 import json
 import stat
 
+
+try:
+    import yara
+except ModuleNotFoundError:
+    pass
+
 try:
     import lief
-except:
+except ModuleNotFoundError:
     pass
 
 try:
     import magic
-except:
+except ModuleNotFoundError:
     pass
 
 try:
     from tqdm import tqdm
-except:
+except ModuleNotFoundError:
     pass
 
 
@@ -58,6 +64,7 @@ class File:
                                     self.results.update(self.get_signer())
                                 if "application/octet-stream" in filemagic["file_mime"]:
                                     self.results.update(self.get_signer())
+                            self.results.update(self.scan_yara())
                         else:
                             self.errors.append("FileTooBigError")
 
@@ -107,6 +114,27 @@ class File:
             self.errors.append("FileSizeError[{}]".format(e.strerror))
             return -1
         return size
+
+    def scan_yara(self):
+        result = {}
+        if args.yara and args.yararules:
+            try:
+                with open(self.file, 'rb') as f:
+                    matches = args.yararules.match(data=f.read())
+                
+                tags = set()
+                for m in matches:
+                    for tag in m.tags:
+                        tags.add(tag)
+
+                result['tags']=",".join(list(tags))
+                result['rules']=",".join([m.rule for m in matches])
+            except yara.TimeoutError:
+                self.errors.append(f'YaraTimeoutError')
+                pass
+        return result
+
+            
 
     def get_signer(self):
         if args.lief:
@@ -254,15 +282,15 @@ def main():
                         action='append', required=False)
     parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase output verbosity",
                         required=False)
-    parser.add_argument("-o", "--outfile", metavar='<OUTFILE>',
-                        help="Outputfile for hashlist", required=False)
+    parser.add_argument("-o", "--outfile", metavar='<OUTFILE>', help="Outputfile for hashlist", required=False)
+    parser.add_argument("-y", "--yarafile", metavar='<YARAFILE>', help="Yara Rules to use", action='append', required=False)
     parser.add_argument("-t", "--text", action='store_true', help="Disable compression for outfile")
     parser.add_argument("-np", "--no-progress", dest="progress", action='store_false', help="Do not show progressbar")
     parser.add_argument("-nm", "--no-magic", dest="magic", action='store_false', help="Do not detect filetypes with libmagic")
-    parser.add_argument("-ns", "--no-signer", dest="lief", action='store_false', help="Do extract digital signatures from binaries")
+    parser.add_argument("-ns", "--no-signer", dest="lief", action='store_false', help="Do not extract digital signatures from binaries")
+    parser.add_argument("-ny", "--no-yara", dest="yara", action='store_false', help="Do not run yara scans")
     parser.add_argument("-c", "--hash-algo", action='append',
-                        help="Select Hashingalgorithm to use. Must be one of:\n{}".format(
-                            str(hashlib.algorithms_available)))
+                        help="Select Hashingalgorithm to use. Must be one of:\n{}".format(str(hashlib.algorithms_available)))
     parser.add_argument("-b", "--basepath", default=os.path.sep, help="Basepath for hashing")
     global args
     args = parser.parse_args()
@@ -289,6 +317,35 @@ def main():
         args.lief = False
         log.warning("module lief not loaded")
         log.warning("Signature extraction for binaries disabled")
+    
+    if 'yara' not in sys.modules:
+        args.yara = False
+        args.yararules = None
+        log.warning("module yara not loaded")
+        log.warning("Files will not be scanned with yara")
+    elif args.yara:
+        log.info("YARA enabled...")
+        args.yararules = None
+        if args.yarafile:
+            rules = {}
+            for idx,f in enumerate(args.yarafile):
+                log.info(f"Compiling specified rules {f}")
+                try:
+                    #test yara file
+                    r = yara.compile(f)
+                    basename = os.path.splitext(os.path.basename(f))
+                    name = f"{idx}_{basename}"
+                    #add it to rules dict with filename as namespace
+                    rules[name] = f
+                except yara.YaraSyntaxError as e:
+                    log.error(f"Syntax error in {f} [{e}]")
+                    pass
+            args.yararules = yara.compile(filepaths=rules)
+        elif os.path.isfile(default_yarafile:=os.path.join(os.getcwd(),"filehasher.yar")):
+            log.info(f"Found Rules {default_yarafile}")
+            args.yararules = yara.compile(filepath=default_yarafile)
+            
+
 
     # if specified hashalgos are not supported exit with error
     if args.hash_algo:
@@ -306,7 +363,7 @@ def main():
     else:
         outfile = gzip.open(args.outfile + ".gz", 'wt')
 
-    # remote trailing slashes from excluded folder names
+    # remove trailing slashes from excluded folder names
     if args.ignore_dir:
         args.ignore_dir = [x.rstrip(os.path.sep) for x in args.ignore_dir]
     if platform.system() == 'Linux':
