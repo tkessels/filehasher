@@ -130,7 +130,10 @@ class File:
                 result['tags']=",".join(list(tags))
                 result['rules']=",".join([m.rule for m in matches])
             except yara.TimeoutError:
-                self.errors.append(f'YaraTimeoutError')
+                self.errors.append('YaraTimeoutError')
+                pass
+            except yara.Error as e:
+                self.errors.append(f'YaraError[{e}]')
                 pass
         return result
 
@@ -140,14 +143,18 @@ class File:
         if args.lief:
             try:
                 bin_obj = lief.parse(self.file)
-                if bin_obj is not None and bin_obj.has_signature:
-                    signer = bin_obj.signature.signer_info.issuer
-                    subjects = [cert.subject for cert in bin_obj.signature.certificates if cert.serial_number==signer[1] ]
-                    result = {
-                        "signer": signer[0],
-                        "signer_serial": ''.join(format(x, '02x') for x in signer[1]),
-                        "signer_subject": ';'.join(subjects)
-                    }
+                if bin_obj is not None and bin_obj.has_signatures:
+                    result = {}
+
+                    for idx,signature in enumerate(bin_obj.signatures):
+                        result[f"signature_{idx}"] = {}
+                        result[f"signature_{idx}"]['check'] = signature.check().name()
+                        result[f"signature_{idx}"]['issuer'] = []
+                        for idy,certificate in enumerate(signature.certificates):
+                            issuer_dict = {}
+                            issuer_dict['name'] = certificate.issuer
+                            issuer_dict['serial'] = ''.join(format(x, '02x') for x in certificate.serial_number)
+                            result[f"signature_{idx}"]['issuer'].append(issuer_dict)
                     return result
             except OSError as e:
                 self.errors.append("LiefError[{}]".format(e.strerror))
@@ -228,6 +235,8 @@ def setup_logging():
     log.addHandler(file_log)
     log.addHandler(console_log)
     log.info("Logging started...")
+    if args.lief:
+        lief.logging.disable()
 
 
 def fileerror(exception):
