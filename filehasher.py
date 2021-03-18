@@ -172,7 +172,7 @@ class File:
             except OSError as e:
                 self.errors.append(f"MagicOSError[{e.strerror}]")
             except magic.MagicException as e:
-                logging.warning(f"MagicError[{str(e)}]")
+                logging.warning(f"MagicError in File {self.file} [{e.message}]")
                 self.errors.append("MagicError")
         return {}
 
