@@ -137,25 +137,24 @@ class File:
                 pass
         return result
 
-            
+
 
     def get_signer(self):
         if args.lief:
             try:
-                bin_obj = lief.parse(self.file)
-                if bin_obj is not None and bin_obj.has_signatures:
-                    result = {}
-
-                    for idx,signature in enumerate(bin_obj.signatures):
-                        result[f"signature_{idx}"] = {}
-                        result[f"signature_{idx}"]['check'] = signature.check().name()
-                        result[f"signature_{idx}"]['issuer'] = []
-                        for idy,certificate in enumerate(signature.certificates):
-                            issuer_dict = {}
-                            issuer_dict['name'] = certificate.issuer
-                            issuer_dict['serial'] = ''.join(format(x, '02x') for x in certificate.serial_number)
-                            result[f"signature_{idx}"]['issuer'].append(issuer_dict)
-                    return result
+                if lief.is_pe(self.file):
+                    bin_obj = lief.parse(self.file)
+                    if bin_obj is not None and bin_obj.has_signatures:
+                        result = {
+                            "signature_validation" : bin_obj.verify_signature().name()
+                        }
+                        for idx,signature in enumerate(bin_obj.signatures):
+                            certs = [c for c in signature.certificates]
+                            chain = [certs[0].issuer]+[cert.subject for cert in certs]
+                            chain_serial = [''.join(format(x, '02x') for x in cert.serial_number) for cert in signature.certificates]
+                            result[f"signature_{idx}_chain"] = ' > '.join(chain)
+                            result[f"signature_{idx}_serials"] = ' > '.join(chain_serial)
+                        return result
             except OSError as e:
                 self.errors.append("LiefError[{}]".format(e.strerror))
             except Exception as e:
