@@ -170,9 +170,10 @@ class File:
                 }
                 return result
             except OSError as e:
-                self.errors.append("MagicError[{}]".format(e.strerror))
+                self.errors.append(f"MagicOSError[{e.strerror}]")
             except magic.MagicException as e:
-                self.errors.append("MagicError[{}]".format(str(e)))
+                logging.warning(f"MagicError[{str(e)}]")
+                self.errors.append("MagicError")
         return {}
 
     def __str__(self):
