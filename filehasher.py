@@ -121,14 +121,14 @@ class File:
             try:
                 with open(self.file, 'rb') as f:
                     matches = args.yararules.match(data=f.read())
-                
-                tags = set()
-                for m in matches:
-                    for tag in m.tags:
-                        tags.add(tag)
+                if len(matches) > 0:
+                    tags = set()
+                    for m in matches:
+                        for tag in m.tags:
+                            tags.add(tag)
 
-                result['tags']=",".join(list(tags))
-                result['rules']=",".join([m.rule for m in matches])
+                    result['tags']=",".join(list(tags))
+                    result['rules']=",".join([m.rule for m in matches])
             except yara.TimeoutError:
                 self.errors.append('YaraTimeoutError')
                 pass
