@@ -33,6 +33,11 @@ try:
 except ModuleNotFoundError:
     pass
 
+try:
+    import ssdeep
+except ModuleNotFoundError:
+    pass
+
 
 class File:
     def __init__(self, file: str, hashtypes=None):
@@ -57,6 +62,7 @@ class File:
                     if self.filesize >= 0:
                         if ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
                             self.hashes.update(self.get_hashes())
+                            self.hashes.update(self.get_ssdeep())
                             self.results.update(self.get_signer())
                             self.results.update(self.scan_yara())
                         else:
@@ -175,7 +181,19 @@ class File:
             except magic.MagicException as e:
                 self.errors.append("MagicError")
         return {}
-        
+
+    def get_ssdeep(self):
+        if args.ssdeep and 'ssdeep' in sys.modules:
+            try:
+                result = {
+                    "ssdeep" : ssdeep.hash_from_file(self.file)
+                }
+                return result
+            except IOError as e:
+                self.errors.append(f"SSDeepIOError[{e.strerror}]")
+            except ssdeep.InternalError as e:
+                self.errors.append(f"SSDeepError[{e}]")
+        return {}
 
     def __str__(self):
         result = {
@@ -307,6 +325,7 @@ def main():
     parser.add_argument("-nm", "--no-magic", dest="magic", action='store_false', help="Do not detect filetypes with libmagic")
     parser.add_argument("-ns", "--no-signer", dest="lief", action='store_false', help="Do not extract digital signatures from binaries")
     parser.add_argument("-ny", "--no-yara", dest="yara", action='store_false', help="Do not run yara scans")
+    parser.add_argument("-nf", "--no-ssdeep", dest="ssdeep", action='store_false', help="Do not compute fuzzy hashes")
     parser.add_argument("-c", "--hash-algo", action='append',
                         help="Select Hashingalgorithm to use. Must be one of:\n{}".format(str(hashlib.algorithms_available)))
     parser.add_argument("-b", "--basepath", default=os.path.sep, help="Basepath for hashing")
@@ -330,6 +349,11 @@ def main():
         args.magic = False
         log.warning("module magic not loaded")
         log.warning("Filetype identification disabled")
+
+    if 'ssdeep' not in sys.modules:
+        args.ssdeep = False
+        log.warning("module ssdeep not loaded")
+        log.warning("Fuzzy Hashing is disabled")
 
     if 'lief' not in sys.modules:
         args.lief = False
