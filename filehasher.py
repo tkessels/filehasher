@@ -43,6 +43,7 @@ class File:
         self.file = file
         self.filename = os.path.basename(self.file)
         self.results = {}
+        self.hashes = {}
         self.errors = []
         self.filesize = -1
         self.stat = self.get_stat()
@@ -55,7 +56,7 @@ class File:
                     self.filesize = self.get_size()
                     if self.filesize >= 0:
                         if ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
-                            self.results.update(self.get_hashes())
+                            self.hashes.update(self.get_hashes())
                             self.results.update(self.get_signer())
                             self.results.update(self.scan_yara())
                         else:
@@ -177,7 +178,15 @@ class File:
         
 
     def __str__(self):
-        result = {"file_name": self.file, "file_size": self.filesize, "inode":self.get_inode(), "timestamps":self.get_timestamps(), "results": self.results, "errors": self.errors}
+        result = {
+            "file_name": self.file,
+            "file_size": self.filesize,
+            "inode":self.get_inode(),
+            "timestamps":self.get_timestamps(),
+            "hashes":self.hashes,
+            "results": self.results,
+            "errors": self.errors
+            }
         return json.dumps(result)
 
     def get_hashes(self):
