@@ -40,30 +40,23 @@ class File:
             self.hashtypes = ['md5']
         else:
             self.hashtypes = hashtypes
-
         self.file = file
         self.filename = os.path.basename(self.file)
         self.results = {}
         self.errors = []
         self.filesize = -1
         self.stat = self.get_stat()
-
         if self.is_accessible():
             if self.is_fifo() is None or self.is_fifo():
                 self.errors.append("FileIsPipeError")
             else:
-                filemagic = self.get_magic()
-                self.results.update(filemagic)
+                self.results.update(self.get_magic())
                 if self.is_file():
                     self.filesize = self.get_size()
                     if self.filesize >= 0:
                         if ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
                             self.results.update(self.get_hashes())
-                            if 'file_mime' in filemagic:
-                                if "application/x-dosexec" in filemagic["file_mime"]:
-                                    self.results.update(self.get_signer())
-                                if "application/octet-stream" in filemagic["file_mime"]:
-                                    self.results.update(self.get_signer())
+                            self.results.update(self.get_signer())
                             self.results.update(self.scan_yara())
                         else:
                             self.errors.append("FileTooBigError")
@@ -103,7 +96,6 @@ class File:
             return self.stat.st_ino
         return -1
 
-
     def get_stat(self):
         try:
             return os.stat(self.file)
@@ -137,7 +129,6 @@ class File:
                     for m in matches:
                         for tag in m.tags:
                             tags.add(tag)
-
                     result['tags']=",".join(list(tags))
                     result['rules']=",".join([m.rule for m in matches])
             except yara.TimeoutError:
@@ -171,7 +162,7 @@ class File:
         return {}
 
     def get_magic(self):
-        if 'magic' in sys.modules:
+        if args.magic and 'magic' in sys.modules:
             try:
                 result = {
                     "file_type": magic.from_file(self.file),
@@ -181,9 +172,9 @@ class File:
             except OSError as e:
                 self.errors.append(f"MagicOSError[{e.strerror}]")
             except magic.MagicException as e:
-                #logging.warning(f"MagicError in File {self.file} [{e.message}]")
                 self.errors.append("MagicError")
         return {}
+        
 
     def __str__(self):
         result = {"file_name": self.file, "file_size": self.filesize, "inode":self.get_inode(), "timestamps":self.get_timestamps(), "results": self.results, "errors": self.errors}
