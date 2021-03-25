@@ -46,10 +46,9 @@ class File:
         self.results = {}
         self.errors = []
         self.filesize = -1
-        self.stat = None
+        self.stat = self.get_stat()
 
         if self.is_accessible():
-            self.stat = self.get_stat()
             if self.is_fifo() is None or self.is_fifo():
                 self.errors.append("FileIsPipeError")
             else:
@@ -78,39 +77,34 @@ class File:
 
     def is_fifo(self):
         try:
-            stats=self.get_stat()
-            if stats is not None:
-                return stat.S_ISFIFO(stats.st_mode)
+            if self.stat is not None:
+                return stat.S_ISFIFO(self.stat.st_mode)
         except OSError as e:
             self.errors.append("FileFIFOError[{}]".format(e.strerror))
         return None
 
-    def is_regular_file(self):
-        try:
-            return stat.S_ISREG(self.get_stat().st_mode)
-        except OSError as e:
-            self.errors.append("FileFIFOError[{}]".format(e.strerror))
-            return False
-
     def get_timestamps(self):
-        result = {}
-        try:
-            stats = self.get_stat()
-            result = {
-                'ctime' : f"{datetime.datetime.fromtimestamp(stats.st_ctime)}",
-                'mtime' : f"{datetime.datetime.fromtimestamp(stats.st_mtime)}",
-                'atime' : f"{datetime.datetime.fromtimestamp(stats.st_atime)}"
-            }
-            return result
-        except OSError:
-            pass
-        except OverflowError:
-            pass
-        return result
+        if self.stat is not None:
+            try:
+                result = {
+                    'ctime' : f"{datetime.datetime.fromtimestamp(self.stat.st_ctime)}",
+                    'mtime' : f"{datetime.datetime.fromtimestamp(self.stat.st_mtime)}",
+                    'atime' : f"{datetime.datetime.fromtimestamp(self.stat.st_atime)}"
+                }
+                return result
+            except OSError:
+                pass
+            except OverflowError:
+                pass
+        return {}
+    
+    def get_inode(self):
+        if self.stat is not None:
+            return self.stat.st_ino
+        return -1
+
 
     def get_stat(self):
-        if self.stat is not None:
-            return self.stat
         try:
             return os.stat(self.file)
         except OSError as e:
@@ -154,8 +148,6 @@ class File:
                 pass
         return result
 
-
-
     def get_signer(self):
         if args.lief:
             try:
@@ -194,7 +186,7 @@ class File:
         return {}
 
     def __str__(self):
-        result = {"file_name": self.file, "file_size": self.filesize, "timestamps":self.get_timestamps(), "results": self.results, "errors": self.errors}
+        result = {"file_name": self.file, "file_size": self.filesize, "inode":self.get_inode(), "timestamps":self.get_timestamps(), "results": self.results, "errors": self.errors}
         return json.dumps(result)
 
     def get_hashes(self):
@@ -381,8 +373,6 @@ def main():
                 exit(1)
     else:
         args.hash_algo = ['md5', 'sha256']
-
-
 
     if args.text:
         outfile = open(args.outfile, 'wt')
