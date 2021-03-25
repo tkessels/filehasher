@@ -10,6 +10,7 @@ import re
 import logging
 import json
 import stat
+import datetime
 
 
 try:
@@ -90,6 +91,22 @@ class File:
         except OSError as e:
             self.errors.append("FileFIFOError[{}]".format(e.strerror))
             return False
+
+    def get_timestamps(self):
+        result = {}
+        try:
+            stats = self.get_stat()
+            result = {
+                'ctime' : f"{datetime.datetime.fromtimestamp(stats.st_ctime)}",
+                'mtime' : f"{datetime.datetime.fromtimestamp(stats.st_mtime)}",
+                'atime' : f"{datetime.datetime.fromtimestamp(stats.st_atime)}"
+            }
+            return result
+        except OSError:
+            pass
+        except OverflowError:
+            pass
+        return result
 
     def get_stat(self):
         if self.stat is not None:
@@ -177,7 +194,7 @@ class File:
         return {}
 
     def __str__(self):
-        result = {"file_name": self.file, "file_size": self.filesize, "results": self.results, "errors": self.errors}
+        result = {"file_name": self.file, "file_size": self.filesize, "timestamps":self.get_timestamps(), "results": self.results, "errors": self.errors}
         return json.dumps(result)
 
     def get_hashes(self):
