@@ -71,7 +71,7 @@ class File:
         try:
             return os.access(self.file, os.R_OK)
         except OSError as e:
-            self.errors.append("FileAccessError[{}]".format(e.strerror))
+            self.errors.append(f"FileAccessError[{e.strerror}]")
             return False
 
     def is_fifo(self):
@@ -79,7 +79,7 @@ class File:
             if self.stat is not None:
                 return stat.S_ISFIFO(self.stat.st_mode)
         except OSError as e:
-            self.errors.append("FileFIFOError[{}]".format(e.strerror))
+            self.errors.append(f"FileFIFOError[{e.strerror}]")
         return None
 
     def get_timestamps(self):
@@ -106,21 +106,21 @@ class File:
         try:
             return os.stat(self.file)
         except OSError as e:
-            self.errors.append("FileSTATError[{}]".format(e.strerror))
+            self.errors.append(f"FileSTATError[{e.strerror}]")
             return None
 
     def is_file(self):
         try:
             return os.path.isfile(self.file)
         except OSError as e:
-            self.errors.append("FileCheckError[{}]".format(e.strerror))
+            self.errors.append(f"FileCheckError[{e.strerror}]")
             return False
 
     def get_size(self):
         try:
             size = os.path.getsize(self.file)
         except OSError as e:
-            self.errors.append("FileSizeError[{}]".format(e.strerror))
+            self.errors.append(f"FileSizeError[{e.strerror}]")
             return -1
         return size
 
@@ -162,9 +162,9 @@ class File:
                             result[f"signature_{idx}_serials"] = ' > '.join(chain_serial)
                         return result
             except OSError as e:
-                self.errors.append("LiefError[{}]".format(e.strerror))
+                self.errors.append(f"LiefError[{e.strerror}]")
             except Exception as e:
-                self.errors.append("LiefError[{}]".format(str(e)))
+                self.errors.append(f"LiefError[{str(e)}]")
         return {}
 
     def get_magic(self):
@@ -221,7 +221,7 @@ class File:
                         hasher.update(data)
                     data = f.read(65536)
         except OSError as e:
-            self.errors.append("FileHashError[{}]".format(e.strerror))
+            self.errors.append(f"FileHashError[{e.strerror}]")
             return {}
         if hpb is not None:
             hpb.close()
@@ -243,30 +243,24 @@ def mtqdm(*args, **kwargs):
 
 
 def setup_logging():
-    # Create logger with max verbosity
-    global log
     log = logging.getLogger("filehasher")
-    log.setLevel(logging.DEBUG)
+    # Create logger with max verbosity for logfile logging
+    logging.basicConfig(filename=args.outfile + ".log",level=logging.INFO,format='%(asctime)s:%(levelname)s: %(message)s')
     formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
-    # formatter = log.Formatter(log.BASIC_FORMAT)
-
+    # Add Console Logging with lower Verbosity
     console_log = logging.StreamHandler()
     console_log.setFormatter(formatter)
     console_log.setLevel(logging.ERROR)
-
-    file_log = logging.FileHandler(args.outfile + ".log")
-    file_log.setFormatter(formatter)
-    file_log.setLevel(logging.INFO)
-
-    log.addHandler(file_log)
     log.addHandler(console_log)
-    log.info("Logging started...")
+
+    logging.info("Logging started...")
+    #Turn of Lief - Lib - Logging messing up everything
     if args.lief:
         lief.logging.disable()
 
 
 def fileerror(exception):
-    log.warning("{} : Couldn't walk path [{}]".format(exception.filename, exception.strerror))
+    logging.warning(f"{exception.filename} : Couldn't walk path [{exception.strerror}]")
 
 
 def get_hostname():
@@ -279,14 +273,14 @@ def get_filelist(basepath):
     filelist = []
     excludedfolders = []
     for path, folders, files in os.walk(basepath, onerror=fileerror, topdown=True):
-        log.debug("processing path {}".format(path))
-        log.debug("following folders were found: {}".format(str(folders)))
+        logging.debug(f"processing path {path}")
+        logging.debug(f"following folders were found: {str(folders)}")
 
         # remove ignored foldersfrom traversal list
         if args.ignore_dir:
             # skip if path is in ignore list
             if path in args.ignore_dir:
-                log.info("{} will be ignored".format(path))
+                logging.info(f"{path} will be ignored")
                 excludedfolders.append(path)
                 folders.clear()
                 files.clear()
@@ -296,7 +290,7 @@ def get_filelist(basepath):
             for subfolder in excluded_subfolders:
                 folders.remove(subfolder)
                 fullpath = os.path.join(path, subfolder)
-                log.info("{} will be ignored".format(fullpath))
+                logging.info(f"{fullpath} will be ignored")
                 excludedfolders.append(fullpath)
 
         if (fpb is not None) and (len(files) > 0): fpb.update(len(files))
@@ -328,45 +322,45 @@ def main():
     args = parser.parse_args()
 
     if not args.outfile:
-        args.outfile = "{}_hashlist.txt".format(get_hostname())
+        args.outfile = f"{get_hostname()}_hashlist.txt"
 
     setup_logging()
 
-    # process arguments
+    # process feature switches from commandline
 
     # if tqdm is not installed disable progressbars
     if 'tqdm' not in sys.modules:
         args.progress = False
-        log.warning("module tqdm not loaded")
-        log.warning("Progressbars disabled")
+        logging.warning("module tqdm not installed")
+        logging.warning("Progressbars disabled")
 
     if 'magic' not in sys.modules:
         args.magic = False
-        log.warning("module magic not loaded")
-        log.warning("Filetype identification disabled")
+        logging.warning("module python-magic not installed")
+        logging.warning("Filetype identification disabled")
 
     if 'ssdeep' not in sys.modules:
         args.ssdeep = False
-        log.warning("module ssdeep not loaded")
-        log.warning("Fuzzy Hashing is disabled")
+        logging.warning("module ssdeep not installed")
+        logging.warning("Fuzzy Hashing is disabled")
 
     if 'lief' not in sys.modules:
         args.lief = False
-        log.warning("module lief not loaded")
-        log.warning("Signature extraction for binaries disabled")
+        logging.warning("module lief not installed")
+        logging.warning("Signature extraction for binaries disabled")
 
     if 'yara' not in sys.modules:
         args.yara = False
         args.yararules = None
-        log.warning("module yara not loaded")
-        log.warning("Files will not be scanned with yara")
+        logging.warning("module yara-python not installed")
+        logging.warning("Files will not be scanned with yara")
     elif args.yara:
-        log.info("YARA enabled...")
+        logging.info("YARA enabled...")
         args.yararules = None
         if args.yarafile:
             rules = {}
             for idx, f in enumerate(args.yarafile):
-                log.info(f"Compiling specified rules {f}")
+                logging.info(f"Compiling specified rules {f}")
                 try:
                     # test yara file
                     r = yara.compile(f)
@@ -375,18 +369,18 @@ def main():
                     # add it to rules dict with filename as namespace
                     rules[name] = f
                 except yara.YaraSyntaxError as e:
-                    log.error(f"Syntax error in {f} [{e}]")
+                    logging.error(f"Syntax error in {f} [{e}]")
                     pass
             args.yararules = yara.compile(filepaths=rules)
         elif os.path.isfile(default_yarafile := os.path.join(os.getcwd(), "filehasher.yar")):
-            log.info(f"Found Rules {default_yarafile}")
+            logging.info(f"Found Rules {default_yarafile}")
             args.yararules = yara.compile(filepath=default_yarafile)
 
     # if specified hashalgos are not supported exit with error
     if args.hash_algo:
         for h in args.hash_algo:
             if h not in hashlib.algorithms_available:
-                print("Hashingalgorithm '{}' is not supported".format(h))
+                print(f"Hashingalgorithm '{h}' is not supported")
                 exit(1)
     else:
         args.hash_algo = ['md5', 'sha256']
@@ -402,12 +396,12 @@ def main():
     if platform.system() == 'Linux':
         args.ignore_dir = ['/proc', '/sys'] if args.ignore_dir is None else args.ignore_dir + ['/proc', '/sys']
 
-    log.info(str(args))
-    log.info(platform.platform())
-    log.info("Filelist Creation started")
+    logging.info(str(args))
+    logging.info(platform.platform())
+    logging.info("Filelist Creation started")
     fl, ef = get_filelist(args.basepath)
-    log.info("Filelist Creation completed")
-    log.info("File Hashing started")
+    logging.info("Filelist Creation completed")
+    logging.info("File Hashing started")
     if args.progress: fl = mtqdm(fl, desc="Hashing", unit='file')
     try:
         filecount = 0
@@ -416,20 +410,20 @@ def main():
                 outfile.write(str(File(f, args.hash_algo)) + "\n")
                 filecount += 1
             except Exception as e:
-                log.error(f"Unexpected Error [{str(e)}] while Processing File. [{f}]")
-        log.info("File Hashing completed")
+                logging.error(f"Unexpected Error [{str(e)}] while Processing File. [{f}]")
+        logging.info("File Hashing completed")
     finally:
         outfile.close()
-    log.info("Analyzed {}/{} files.".format(filecount, len(fl)))
+    logging.info("Analyzed {}/{} files.".format(filecount, len(fl)))
     with open(outfile.name, 'rb') as hashlistfile:
         hasher = hashlib.md5()
         hasher.update(hashlistfile.read())
-    log.info(hasher.hexdigest())
-    log.info("Done")
+    logging.info(hasher.hexdigest())
+    logging.info("Done")
 
 
 if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        log.warning("Keyboard Interrupt detected: Exiting")
+        logging.warning("Keyboard Interrupt detected: Exiting")
