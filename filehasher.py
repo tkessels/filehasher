@@ -12,7 +12,6 @@ import json
 import stat
 import datetime
 
-
 try:
     import yara
 except ModuleNotFoundError:
@@ -60,7 +59,7 @@ class File:
                 if self.is_file():
                     self.filesize = self.get_size()
                     if self.filesize >= 0:
-                        if ((self.filesize < args.max_file_size) or (args.max_file_size <= 0)):
+                        if (self.filesize < args.max_file_size) or (args.max_file_size <= 0):
                             self.hashes.update(self.get_hashes())
                             self.hashes.update(self.get_ssdeep())
                             self.results.update(self.get_signer())
@@ -87,9 +86,9 @@ class File:
         if self.stat is not None:
             try:
                 result = {
-                    'ctime' : f"{datetime.datetime.fromtimestamp(self.stat.st_ctime)}",
-                    'mtime' : f"{datetime.datetime.fromtimestamp(self.stat.st_mtime)}",
-                    'atime' : f"{datetime.datetime.fromtimestamp(self.stat.st_atime)}"
+                    'ctime': f"{datetime.datetime.fromtimestamp(self.stat.st_ctime)}",
+                    'mtime': f"{datetime.datetime.fromtimestamp(self.stat.st_mtime)}",
+                    'atime': f"{datetime.datetime.fromtimestamp(self.stat.st_atime)}"
                 }
                 return result
             except OSError:
@@ -97,7 +96,7 @@ class File:
             except OverflowError:
                 pass
         return {}
-    
+
     def get_inode(self):
         if self.stat is not None:
             return self.stat.st_ino
@@ -136,8 +135,8 @@ class File:
                     for m in matches:
                         for tag in m.tags:
                             tags.add(tag)
-                    result['tags']=",".join(list(tags))
-                    result['rules']=",".join([m.rule for m in matches])
+                    result['tags'] = ",".join(list(tags))
+                    result['rules'] = ",".join([m.rule for m in matches])
             except yara.TimeoutError:
                 self.errors.append('YaraTimeoutError')
                 pass
@@ -153,11 +152,11 @@ class File:
                     bin_obj = lief.parse(self.file)
                     if bin_obj is not None and bin_obj.has_signatures:
                         result = {
-                            "signature_validation" : bin_obj.verify_signature().name()
+                            "signature_validation": bin_obj.verify_signature().name()
                         }
-                        for idx,signature in enumerate(bin_obj.signatures):
+                        for idx, signature in enumerate(bin_obj.signatures):
                             certs = [c for c in signature.certificates]
-                            chain = [certs[0].issuer]+[cert.subject for cert in certs]
+                            chain = [certs[0].issuer] + [cert.subject for cert in certs]
                             chain_serial = [''.join(format(x, '02x') for x in cert.serial_number) for cert in signature.certificates]
                             result[f"signature_{idx}_chain"] = ' > '.join(chain)
                             result[f"signature_{idx}_serials"] = ' > '.join(chain_serial)
@@ -186,7 +185,7 @@ class File:
         if args.ssdeep and 'ssdeep' in sys.modules:
             try:
                 result = {
-                    "ssdeep" : ssdeep.hash_from_file(self.file)
+                    "ssdeep": ssdeep.hash_from_file(self.file)
                 }
                 return result
             except IOError as e:
@@ -199,12 +198,12 @@ class File:
         result = {
             "file_name": self.file,
             "file_size": self.filesize,
-            "inode":self.get_inode(),
-            "timestamps":self.get_timestamps(),
-            "hashes":self.hashes,
+            "inode": self.get_inode(),
+            "timestamps": self.get_timestamps(),
+            "hashes": self.hashes,
             "results": self.results,
             "errors": self.errors
-            }
+        }
         return json.dumps(result)
 
     def get_hashes(self):
@@ -308,16 +307,13 @@ def get_filelist(basepath):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--max-file-size", metavar='<SIZE>',
+    parser.add_argument("-m", "--max-file-size", metavar='<SIZE>', type=int, default=(50 * 1024 * 1024), required=False,
                         help='Max Size of files to hash in bytes. Set value of <SIZE> <= 0 to disable filtering of '
-                             'large files. This will increase the time required. Default value is 50M.',
-                        type=int, default=(50 * 1024 * 1024), required=False)
-    parser.add_argument("-d", "--ignore-dir", metavar='<NAME>',
+                             'large files. This will increase the time required. Default value is 50M.')
+    parser.add_argument("-d", "--ignore-dir", metavar='<NAME>', action='append', required=False,
                         help="Ignore directory. Can be used multiple times. Will ignore all folders with name <NAME>. "
-                             "Use absolute path to ignore one specific folder.",
-                        action='append', required=False)
-    parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase output verbosity",
-                        required=False)
+                             "Use absolute path to ignore one specific folder.")
+    parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase output verbosity", required=False)
     parser.add_argument("-o", "--outfile", metavar='<OUTFILE>', help="Outputfile for hashlist", required=False)
     parser.add_argument("-y", "--yarafile", metavar='<YARAFILE>', help="Yara Rules to use", action='append', required=False)
     parser.add_argument("-t", "--text", action='store_true', help="Disable compression for outfile")
@@ -326,8 +322,7 @@ def main():
     parser.add_argument("-ns", "--no-signer", dest="lief", action='store_false', help="Do not extract digital signatures from binaries")
     parser.add_argument("-ny", "--no-yara", dest="yara", action='store_false', help="Do not run yara scans")
     parser.add_argument("-nf", "--no-ssdeep", dest="ssdeep", action='store_false', help="Do not compute fuzzy hashes")
-    parser.add_argument("-c", "--hash-algo", action='append',
-                        help="Select Hashingalgorithm to use. Must be one of:\n{}".format(str(hashlib.algorithms_available)))
+    parser.add_argument("-c", "--hash-algo", action='append', help=f"Select Hashingalgorithm to use. Must be one of:\n{str(hashlib.algorithms_available)}")
     parser.add_argument("-b", "--basepath", default=os.path.sep, help="Basepath for hashing")
     global args
     args = parser.parse_args()
@@ -359,7 +354,7 @@ def main():
         args.lief = False
         log.warning("module lief not loaded")
         log.warning("Signature extraction for binaries disabled")
-    
+
     if 'yara' not in sys.modules:
         args.yara = False
         args.yararules = None
@@ -370,24 +365,22 @@ def main():
         args.yararules = None
         if args.yarafile:
             rules = {}
-            for idx,f in enumerate(args.yarafile):
+            for idx, f in enumerate(args.yarafile):
                 log.info(f"Compiling specified rules {f}")
                 try:
-                    #test yara file
+                    # test yara file
                     r = yara.compile(f)
                     basename = os.path.splitext(os.path.basename(f))
                     name = f"{idx}_{basename}"
-                    #add it to rules dict with filename as namespace
+                    # add it to rules dict with filename as namespace
                     rules[name] = f
                 except yara.YaraSyntaxError as e:
                     log.error(f"Syntax error in {f} [{e}]")
                     pass
             args.yararules = yara.compile(filepaths=rules)
-        elif os.path.isfile(default_yarafile:=os.path.join(os.getcwd(),"filehasher.yar")):
+        elif os.path.isfile(default_yarafile := os.path.join(os.getcwd(), "filehasher.yar")):
             log.info(f"Found Rules {default_yarafile}")
             args.yararules = yara.compile(filepath=default_yarafile)
-            
-
 
     # if specified hashalgos are not supported exit with error
     if args.hash_algo:
@@ -417,24 +410,22 @@ def main():
     log.info("File Hashing started")
     if args.progress: fl = mtqdm(fl, desc="Hashing", unit='file')
     try:
-        filecount=0
+        filecount = 0
         for f in fl:
             try:
                 outfile.write(str(File(f, args.hash_algo)) + "\n")
-                filecount+=1
+                filecount += 1
             except Exception as e:
-                log.error("Unexpected Error [{}] while Processing File. [{}]".format(str(e),f))
+                log.error(f"Unexpected Error [{str(e)}] while Processing File. [{f}]")
         log.info("File Hashing completed")
     finally:
         outfile.close()
-    log.info("Analyzed {}/{} files.".format(filecount,len(fl)))
-    with open(outfile.name,'rb') as hashlistfile:
-        hasher=hashlib.md5()
+    log.info("Analyzed {}/{} files.".format(filecount, len(fl)))
+    with open(outfile.name, 'rb') as hashlistfile:
+        hasher = hashlib.md5()
         hasher.update(hashlistfile.read())
     log.info(hasher.hexdigest())
     log.info("Done")
-
-
 
 
 if __name__ == '__main__':
