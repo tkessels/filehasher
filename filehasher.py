@@ -245,7 +245,11 @@ def mtqdm(*args, **kwargs):
 def setup_logging():
     log = logging.getLogger("filehasher")
     # Create logger with max verbosity for logfile logging
-    logging.basicConfig(filename=args.outfile + ".log",level=logging.INFO,format='%(asctime)s:%(levelname)s: %(message)s')
+    try:
+        logging.basicConfig(filename=args.outfile + ".log",level=logging.INFO,format='%(asctime)s:%(levelname)s: %(message)s')
+    except OSError as e:
+        logging.error(f"Could not setup Logging : {str(e)}")
+        sys.exit(1)
     formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
     # Add Console Logging with lower Verbosity
     console_log = logging.StreamHandler()
@@ -384,11 +388,14 @@ def main():
                 exit(1)
     else:
         args.hash_algo = ['md5', 'sha256']
-
-    if args.text:
-        outfile = open(args.outfile, 'wt')
-    else:
-        outfile = gzip.open(args.outfile + ".gz", 'wt')
+    try:
+        if args.text:
+            outfile = open(args.outfile, 'wt')
+        else:
+            outfile = gzip.open(args.outfile + ".gz", 'wt')
+    except OSError as e:
+        logging.error(f"Could not create outputfile : {str(e)}")
+        sys.exit(1)
 
     # remove trailing slashes from excluded folder names
     if args.ignore_dir:
